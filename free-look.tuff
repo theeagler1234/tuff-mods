@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "id": "chromebook-freelook-unsafe",
+    "name": "Chromebook Freelook Camera (Unsafe)",
+    "version": "1.0.2",
+    "author": "You",
+    "entry": "main.js",
+    "minClientVersion": "1.1ut14",
+    "permissions": ["hud", "events", "modules", "unsafe"]
+  },
+  "files": {
+    "main.js": "module.exports = function(api){\n    let enabled=false;\n    let cam={x:0,y:0,z:0,yaw:0,pitch:0};\n    let speed=0.5;\n    let keys={};\n    let mouse={dx:0,dy:0};\n\n    // Toggle freelook with 'P' (keyCode 80)\n    api.on('keyDown', e=>{\n        keys[e.keyCode]=true;\n        if(e.keyCode===80&&!e.isRepeat){\n            enabled=!enabled;\n            if(enabled){\n                api.toast('Freelook Enabled','info');\n                cam.x=api.player?.x||0;\n                cam.y=api.player?.y||0;\n                cam.z=api.player?.z||0;\n            } else {\n                api.toast('Freelook Disabled','info');\n            }\n        }\n    });\n\n    api.on('keyUp', e=>{ keys[e.keyCode]=false; });\n\n    // Unsafe mouse movement for freelook\n    if(api.hasPermission('unsafe')){\n        window.addEventListener('mousemove', e=>{\n            if(enabled){ mouse.dx=e.movementX; mouse.dy=e.movementY; }\n        });\n    }\n\n    api.on('tick', ()=>{\n        if(!enabled) return;\n\n        // Mouse rotation\n        cam.yaw += mouse.dx * 0.15;\n        cam.pitch -= mouse.dy * 0.15;\n        if(cam.pitch>90) cam.pitch=90;\n        if(cam.pitch<-90) cam.pitch=-90;\n        mouse.dx=0; mouse.dy=0;\n\n        // Movement\n        let forward=(keys[87]?1:0)-(keys[83]?1:0); // W/S\n        let strafe=(keys[68]?1:0)-(keys[65]?1:0); // D/A\n        let up=(keys[32]?1:0)-(keys[16]?1:0); // Space/Shift\n        let yawRad=cam.yaw*Math.PI/180;\n        cam.x += forward*Math.cos(yawRad)*speed + strafe*Math.cos(yawRad+Math.PI/2)*speed;\n        cam.z += forward*Math.sin(yawRad)*speed + strafe*Math.sin(yawRad+Math.PI/2)*speed;\n        cam.y += up*speed;\n    });\n\n    // HUD overlay\n    api.registerHUD('freelook', ctx=>{\n        if(!ctx||!enabled) return;\n        api.drawText(ctx, `Freelook ON\\nX:${cam.x.toFixed(1)} Y:${cam.y.toFixed(1)} Z:${cam.z.toFixed(1)}\\nYaw:${cam.yaw.toFixed(1)} Pitch:${cam.pitch.toFixed(1)}`,10,10,{color:'#aaffaa', font:'16px monospace'});\n    });\n\n    // Expose camera for modules\n    api.registerModule({id:'chromebook-freelook-unsafe', description:'Detached freelook camera with unsafe features', getCamera:()=>cam});\n};"
+  }
+}
